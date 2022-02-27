@@ -1354,6 +1354,27 @@ void CommitList::selectFirstCommit(bool spontaneous)
   }
 }
 
+
+void CommitList::keyPressEvent(QKeyEvent *e){
+    QKeyEvent *my = nullptr;
+    switch(e->key()){
+        case Qt::Key_J:
+            my = new QKeyEvent(QEvent::KeyPress, Qt::Key_Down, Qt::NoModifier);
+        break;
+        case Qt::Key_K:
+            my = new QKeyEvent(QEvent::KeyPress, Qt::Key_Up, Qt::NoModifier);
+        break;
+    }
+    if (my != nullptr){
+        QListView::keyPressEvent(my);
+        delete my;
+    }
+    else {
+        QListView::keyPressEvent(e);
+    }
+
+}
+
 bool CommitList::selectRange(
   const QString &range,
   const QString &file,

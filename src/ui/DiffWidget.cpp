@@ -31,7 +31,10 @@ const QItemSelectionModel::SelectionFlags kSelectionFlags =
 DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   : ContentWidget(parent)
 {
-  mFiles = new FileList(repo, this);
+  auto shortcut = new QShortcut(QKeySequence(tr("Alt+2", "DiffView")), parent);
+
+  QWidget *view2 = new QWidget();
+  mFiles = new FileList(repo, view2);
   mFiles->hide(); // Start hidden.
 
   mDiffView = new DiffView(repo, this);
@@ -46,20 +49,39 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   viewLayout->addWidget(mFind);
   viewLayout->addWidget(mDiffView);
 
-  mSplitter = new QSplitter(Qt::Vertical, this);
+  auto *viewLayout2 = new QVBoxLayout(view2);
+  viewLayout2->setContentsMargins(0,0,0,0);
+  viewLayout2->setSpacing(0);
+  viewLayout2->addWidget(mFiles);
+  viewLayout2->addStretch(0);
+
+  mSplitter = new QSplitter(Qt::Horizontal);
   mSplitter->setChildrenCollapsible(false);
   mSplitter->setHandleWidth(0);
-  mSplitter->addWidget(mFiles);
+  mSplitter->addWidget(view2);
   mSplitter->addWidget(view);
-  mSplitter->setStretchFactor(1, 1);
+  mSplitter->setSizes(QList<int>({100, 300}));
+//  mSplitter->setStretchFactor(0, 1);
+//  mSplitter->setStretchFactor(1, 3);
+
+  connect(shortcut, &QShortcut::activated, [this]{
+      mFiles->setFocus();
+  });
+
+  setFocusProxy(mFiles);
+
   connect(mSplitter, &QSplitter::splitterMoved, [this] {
-    FileList::setFileRows(mFiles->height() / mFiles->sizeHintForRow(0));
+    FileList::setFileRows(mSplitter->height() / mFiles->sizeHintForRow(0));
   });
 
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(0,0,0,0);
+  layout->setSpacing(0);
+  layout->setMargin(0);
   layout->addWidget(mSplitter);
 
+//  this->layout()->setSpacing(0);
+//  this->layout()->setContentsMargins(0,0,0, 0);
   // Filter on selection change.
   QItemSelectionModel *selection = mFiles->selectionModel();
   connect(selection, &QItemSelectionModel::selectionChanged, [this] {
@@ -115,7 +137,7 @@ void DiffWidget::setDiff(
   mFind->reset();
 
   // Adjust splitter.
-  mSplitter->setSizes({mFiles->sizeHint().height(), -1});
+//  mSplitter->setSizes({mFiles->sizeHint().height(), -1});
 
   // Scroll to file.
   selectFile(file);

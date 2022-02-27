@@ -214,6 +214,7 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
       mHistory->clean();
   });
 
+  auto shortcut = new QShortcut(QKeySequence(tr("Alt+1", "Tree")), parent);
   QWidget *sidebar = new QWidget(this);
   QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
   sidebarLayout->setContentsMargins(0,0,0,0);
@@ -261,6 +262,9 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   mCommits = new CommitList(mIndex, sidebar);
   sidebarLayout->addWidget(mCommits);
 
+  connect(shortcut, &QShortcut::activated, [this]{
+      mCommits->setFocus();
+  });
   connect(commitToolBar, &CommitToolBar::settingsChanged,
           mCommits, &CommitList::resetSettings);
   connect(mRefs, &ReferenceWidget::referenceChanged,
@@ -374,7 +378,7 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   connect(mCommits, &CommitList::statusChanged,
           watcher, &RepositoryWatcher::cancelPendingNotification);
 
-  QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+  QSplitter *splitter = new QSplitter(Qt::Vertical, this);
   splitter->setChildrenCollapsible(false);
   splitter->setHandleWidth(0);
   splitter->addWidget(sidebar);
@@ -439,7 +443,7 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   });
 
   // Restore splitter state.
-  splitter->restoreState(QSettings().value(kSplitterKey).toByteArray());
+//  splitter->restoreState(QSettings().value(kSplitterKey).toByteArray());
 
   // Connect automatic fetch timer.
   connect(&mFetchTimer, &QTimer::timeout, [this] {

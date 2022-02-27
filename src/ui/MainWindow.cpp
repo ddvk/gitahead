@@ -121,7 +121,7 @@ MainWindow::MainWindow(
   });
 
   // Create splitter.
-  QSplitter *splitter = new QSplitter(this);
+  QSplitter *splitter = new QSplitter(Qt::Vertical, this);
   splitter->setHandleWidth(0);
   connect(splitter, &QSplitter::splitterMoved, [this] {
     QSplitter *splitter = static_cast<QSplitter *>(centralWidget());

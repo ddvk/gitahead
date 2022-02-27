@@ -46,6 +46,7 @@
 #include <QUrl>
 #include <QVBoxLayout>
 #include <QWindow>
+#include <QTabWidget>
 #include <QtConcurrent>
 
 namespace {
@@ -1146,16 +1147,22 @@ DetailView::DetailView(const git::Repository &repo, QWidget *parent)
 
   mDetail = new StackedWidget(this);
   mDetail->setVisible(false);
-  layout->addWidget(mDetail);
-
   mDetail->addWidget(new CommitDetail(this));
   mDetail->addWidget(new CommitEditor(repo, this));
+//  layout->addWidget(mDetail);
 
   mContent = new QStackedWidget(this);
-  layout->addWidget(mContent, 1);
-
-  mContent->addWidget(new DiffWidget(repo, this));
+  auto diffWidget = new DiffWidget(repo, this);
+  mContent->addWidget(diffWidget);
   mContent->addWidget(new TreeWidget(repo, this));
+//  layout->addWidget(mContent, 1);
+
+  QTabWidget *tabWidget = new QTabWidget();
+  tabWidget->addTab(mContent, tr("&DiffView"));
+  tabWidget->addTab(mDetail, tr("D&etail"));
+  tabWidget->findChild<QWidget*>()->setFocusProxy(diffWidget);
+
+  layout->addWidget(tabWidget, 1);
 }
 
 DetailView::~DetailView() {}

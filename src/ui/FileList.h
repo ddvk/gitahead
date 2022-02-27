@@ -44,6 +44,7 @@ protected:
   void mousePressEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
   void resizeEvent(QResizeEvent *) override;
+  void keyPressEvent(QKeyEvent *) override;
 
 private:
   void updateMenu(const git::Diff &diff);

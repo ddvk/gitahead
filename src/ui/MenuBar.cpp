@@ -69,7 +69,7 @@ MenuBar::MenuBar(QWidget *parent)
   : QMenuBar(parent)
 {
   // File
-  QMenu *file = addMenu(tr("File"));
+  QMenu *file = addMenu(tr("&File"));
 
   QAction *newFile = file->addAction(tr("New File"));
   newFile->setShortcut(QKeySequence::New);
@@ -386,7 +386,7 @@ MenuBar::MenuBar(QWidget *parent)
   });
 
   // Remote
-  QMenu *remote = addMenu(tr("Remote"));
+  QMenu *remote = addMenu(tr("&Remote"));
 
   mConfigureRemotes = remote->addAction(tr("Configure Remotes..."));
   mConfigureRemotes->setMenuRole(QAction::NoRole);

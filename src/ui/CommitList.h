@@ -54,6 +54,7 @@ public:
   void resetSettings();
 
   void setModel(QAbstractItemModel *model) override;
+  void keyPressEvent(QKeyEvent *) override;
 
 signals:
   void statusChanged(bool dirty);

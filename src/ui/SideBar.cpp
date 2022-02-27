@@ -604,7 +604,7 @@ SideBar::SideBar(TabWidget *tabs, QWidget *parent)
   QTreeView *view = new QTreeView(this);
   view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
   view->setContextMenuPolicy(Qt::CustomContextMenu);
-  view->setFocusPolicy(Qt::NoFocus);
+//  view->setFocusPolicy(Qt::NoFocus);
   view->setIconSize(QSize(20, 20));
   view->setRootIsDecorated(false);
   view->setHeaderHidden(true);

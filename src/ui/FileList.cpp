@@ -211,6 +211,25 @@ protected:
 
 } // anon. namespace
 
+void FileList::keyPressEvent(QKeyEvent *e){
+    QKeyEvent *my = nullptr;
+    switch(e->key()){
+        case Qt::Key_J:
+            my = new QKeyEvent(QEvent::KeyPress, Qt::Key_Down, Qt::NoModifier);
+        break;
+        case Qt::Key_K:
+            my = new QKeyEvent(QEvent::KeyPress, Qt::Key_Up, Qt::NoModifier);
+        break;
+    }
+    if (my != nullptr){
+        QListView::keyPressEvent(my);
+        delete my;
+    }
+    else {
+        QListView::keyPressEvent(e);
+    }
+
+}
 FileList::FileList(const git::Repository &repo, QWidget *parent)
   : QListView(parent)
 {
