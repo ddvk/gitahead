@@ -712,7 +712,7 @@ public:
   CommitEditor(const git::Repository &repo, QWidget *parent = nullptr)
     : QFrame(parent), mRepo(repo)
   {
-    QLabel *label = new QLabel(tr("<b>Commit Message:</b>"), this);
+    QLabel *label = new QLabel(tr("<b>Commit &Message:</b>"), this);
 
     // Style and color setup for checks.
     mSpellError.setUnderlineColor(Application::theme()->commitEditor(
@@ -873,6 +873,7 @@ public:
     mMessage->setObjectName("MessageEditor");
     mMessage->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
     setFocusProxy(mMessage);
+    label->setBuddy(mMessage);
     connect(mMessage, &QTextEdit::textChanged, [this] {
       mPopulate = false;
 
@@ -1149,11 +1150,12 @@ DetailView::DetailView(const git::Repository &repo, QWidget *parent)
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(0,0,0,0);
   layout->setSpacing(0);
-
+  auto commitEditor = new CommitEditor(repo, this);
   mDetail = new StackedWidget(this);
   mDetail->setVisible(false);
   mDetail->addWidget(new CommitDetail(this));
-  mDetail->addWidget(new CommitEditor(repo, this));
+  mDetail->addWidget(commitEditor);
+  mDetail->setFocusProxy(commitEditor);
 //  layout->addWidget(mDetail);
 
   mContent = new QStackedWidget(this);

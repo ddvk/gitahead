@@ -223,7 +223,12 @@ void FileList::keyPressEvent(QKeyEvent *e){
         case Qt::Key_H:
             emit gotoCommits();
             return;
-        break;
+        case Qt::Key_L:
+            if ((e->modifiers() & Qt::ShiftModifier) != 0)
+                emit scrollFileUp();
+            else
+                emit scrollFileDown();
+            return;
 
     }
     if (my != nullptr){

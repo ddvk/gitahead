@@ -38,6 +38,8 @@ public:
 signals:
   void sortRequested();
   void gotoCommits();
+  void scrollFileDown();
+  void scrollFileUp();
 
 protected:
   void contextMenuEvent(QContextMenuEvent *event) override;

@@ -2107,6 +2107,7 @@ private:
 
 } // anon. namespace
 
+
 DiffView::DiffView(const git::Repository &repo, QWidget *parent)
   : QScrollArea(parent)
 {
@@ -2323,6 +2324,11 @@ void DiffView::ensureVisible(TextEditor *editor, int pos)
   } else if (y >= val + step) {
     scrollBar->setValue(y - step + editor->textHeight(0));
   }
+}
+
+void DiffView::scrollTo(int dy){
+  QScrollBar *scrollBar = verticalScrollBar();
+  scrollBar->setValue(scrollBar->value()+dy);
 }
 
 void DiffView::dropEvent(QDropEvent *event)

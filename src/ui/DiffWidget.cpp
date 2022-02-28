@@ -36,8 +36,8 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   : ContentWidget(parent)
 {
 
-  QWidget *view2 = new QWidget();
-  mFiles = new FileList(repo, view2);
+  QWidget *fileView = new QWidget();
+  mFiles = new FileList(repo, fileView);
   mFiles->hide(); // Start hidden.
 
   mDiffView = new DiffView(repo, this);
@@ -45,14 +45,14 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   mFind = new FindWidget(mDiffView, this);
   mFind->hide(); // Start hidden.
 
-  QWidget *view = new QWidget(this);
-  QVBoxLayout *viewLayout = new QVBoxLayout(view);
+  QWidget *diffView = new QWidget(this);
+  QVBoxLayout *viewLayout = new QVBoxLayout(diffView);
   viewLayout->setContentsMargins(0,0,0,0);
   viewLayout->setSpacing(0);
   viewLayout->addWidget(mFind);
   viewLayout->addWidget(mDiffView);
 
-  auto *viewLayout2 = new QVBoxLayout(view2);
+  auto *viewLayout2 = new QVBoxLayout(fileView);
   viewLayout2->setContentsMargins(0,0,0,0);
   viewLayout2->setSpacing(0);
   viewLayout2->addWidget(mFiles);
@@ -61,19 +61,21 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   mSplitter = new QSplitter(Qt::Horizontal);
   mSplitter->setChildrenCollapsible(false);
   mSplitter->setHandleWidth(0);
-  mSplitter->addWidget(view2);
-  mSplitter->addWidget(view);
+  mSplitter->addWidget(fileView);
+  mSplitter->addWidget(diffView);
   mSplitter->setSizes(QList<int>({100, 300}));
 //  mSplitter->setStretchFactor(0, 1);
 //  mSplitter->setStretchFactor(1, 3);
 
   auto shortcut = new QShortcut(QKeySequence(tr("Alt+2", "DiffView")), parent);
   connect(shortcut, &QShortcut::activated, [this]{
-      mFiles->setFocus();
+    mFiles->setFocus();
   });
-  connect(mFiles, &FileList::gotoCommits, [this]{
-      QWidget *w = qobject_cast<QWidget*>(this->parent()->parent());
-      w->setFocus();
+  connect(mFiles, &FileList::scrollFileDown, [this]{
+    mDiffView->scrollTo(100);
+  });
+  connect(mFiles, &FileList::scrollFileUp, [this]{
+    mDiffView->scrollTo(-100);
   });
 
 //  setFocusProxy(mFiles);

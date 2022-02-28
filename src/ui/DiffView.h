@@ -43,6 +43,7 @@ public:
 
   QList<TextEditor *> editors() override;
   void ensureVisible(TextEditor *editor, int pos) override;
+  void scrollTo(int dy);
 
 signals:
   void diagnosticAdded(TextEditor::DiagnosticKind kind);

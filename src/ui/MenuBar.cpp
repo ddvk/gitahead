@@ -454,8 +454,8 @@ MenuBar::MenuBar(QWidget *parent)
     view()->configureSettings(ConfigDialog::Branches);
   });
 
-  mNewBranch = branch->addAction(tr("New Branch..."));
-  connect(mNewBranch, &QAction::triggered, [this] {
+  mNewBranch = branch->addAction(tr("New Branch..."),
+  [this] {
     view()->promptToCreateBranch();
   });
 
