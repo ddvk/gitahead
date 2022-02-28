@@ -872,6 +872,7 @@ public:
     mMessage->setAcceptRichText(false);
     mMessage->setObjectName("MessageEditor");
     mMessage->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    setFocusProxy(mMessage);
     connect(mMessage, &QTextEdit::textChanged, [this] {
       mPopulate = false;
 
@@ -921,7 +922,7 @@ public:
     mUnstage = new QPushButton(tr("Unstage All"), this);
     connect(mUnstage, &QPushButton::clicked, this, &CommitEditor::unstage);
 
-    mCommit = new QPushButton(tr("Commit"), this);
+    mCommit = new QPushButton("C&ommit", this);
     mCommit->setDefault(true);
     connect(mCommit, &QPushButton::clicked, this, &CommitEditor::commit);
 
@@ -1104,7 +1105,7 @@ private:
     // Change commit button text for committing a merge.
     git::Repository repo = RepoView::parentView(this)->repo();
     bool merging = (repo.state() == GIT_REPOSITORY_STATE_MERGE);
-    mCommit->setText(merging ? tr("Commit Merge") : tr("Commit"));
+    mCommit->setText(merging ? tr("&Commit Merge") : tr("&Commit"));
 
     // Update menu actions.
     MenuBar::instance(this)->updateRepository();
