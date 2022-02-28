@@ -28,10 +28,13 @@ const QItemSelectionModel::SelectionFlags kSelectionFlags =
 
 } // anon. namespace
 
+void DiffWidget::focus(){
+    mFiles->setFocus();
+}
+
 DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   : ContentWidget(parent)
 {
-  auto shortcut = new QShortcut(QKeySequence(tr("Alt+2", "DiffView")), parent);
 
   QWidget *view2 = new QWidget();
   mFiles = new FileList(repo, view2);
@@ -64,8 +67,13 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
 //  mSplitter->setStretchFactor(0, 1);
 //  mSplitter->setStretchFactor(1, 3);
 
+  auto shortcut = new QShortcut(QKeySequence(tr("Alt+2", "DiffView")), parent);
   connect(shortcut, &QShortcut::activated, [this]{
       mFiles->setFocus();
+  });
+  connect(mFiles, &FileList::gotoCommits, [this]{
+      QWidget *w = qobject_cast<QWidget*>(this->parent()->parent());
+      w->setFocus();
   });
 
 //  setFocusProxy(mFiles);

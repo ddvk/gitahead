@@ -12,8 +12,10 @@
 
 #include "RepoView.h"
 #include <QWidget>
+#include <QTabWidget>
 
 class QStackedWidget;
+class DiffWidget;
 
 namespace git {
 class Diff;
@@ -77,6 +79,7 @@ public:
   void find();
   void findNext();
   void findPrevious();
+  void focusFiles();
 
 signals:
   void viewModeChanged(RepoView::ViewMode mode, bool spontaneous = false);
@@ -96,6 +99,9 @@ private:
 
   QStackedWidget *mDetail;
   QStackedWidget *mContent;
+  QTabWidget *tabWidget;
+  DiffWidget *diffWidget;
+
 };
 
 #endif

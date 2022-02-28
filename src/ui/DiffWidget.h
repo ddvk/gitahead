@@ -9,9 +9,8 @@
 
 #ifndef DIFFWIDGET_H
 #define DIFFWIDGET_H
-
-#include "DetailView.h"
 #include "git/Index.h"
+#include "DetailView.h"
 
 
 class DiffView;
@@ -39,6 +38,7 @@ public:
   void find() override;
   void findNext() override;
   void findPrevious() override;
+  void focus();
 
 private:
   void selectFile(const QString &name);

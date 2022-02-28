@@ -1364,6 +1364,9 @@ void CommitList::keyPressEvent(QKeyEvent *e){
         case Qt::Key_K:
             my = new QKeyEvent(QEvent::KeyPress, Qt::Key_Up, Qt::NoModifier);
         break;
+        case Qt::Key_L:
+            emit gotoDiff();
+            return;
     }
     if (my != nullptr){
         QListView::keyPressEvent(my);

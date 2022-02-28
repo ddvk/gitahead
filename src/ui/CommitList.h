@@ -57,6 +57,7 @@ public:
   void keyPressEvent(QKeyEvent *) override;
 
 signals:
+  void gotoDiff();
   void statusChanged(bool dirty);
   void diffSelected(
     const git::Diff &diff,

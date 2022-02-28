@@ -37,6 +37,7 @@ public:
 
 signals:
   void sortRequested();
+  void gotoCommits();
 
 protected:
   void contextMenuEvent(QContextMenuEvent *event) override;

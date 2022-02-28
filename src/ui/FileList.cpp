@@ -220,6 +220,11 @@ void FileList::keyPressEvent(QKeyEvent *e){
         case Qt::Key_K:
             my = new QKeyEvent(QEvent::KeyPress, Qt::Key_Up, Qt::NoModifier);
         break;
+        case Qt::Key_H:
+            emit gotoCommits();
+            return;
+        break;
+
     }
     if (my != nullptr){
         QListView::keyPressEvent(my);

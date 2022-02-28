@@ -214,7 +214,6 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
       mHistory->clean();
   });
 
-  auto shortcut = new QShortcut(QKeySequence(tr("Alt+1", "Tree")), parent);
   QWidget *sidebar = new QWidget(this);
   QVBoxLayout *sidebarLayout = new QVBoxLayout(sidebar);
   sidebarLayout->setContentsMargins(0,0,0,0);
@@ -262,6 +261,7 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   mCommits = new CommitList(mIndex, sidebar);
   sidebarLayout->addWidget(mCommits);
 
+  auto shortcut = new QShortcut(QKeySequence(tr("h", "Tree")), parent);
   connect(shortcut, &QShortcut::activated, [this]{
       mCommits->setFocus();
   });
@@ -387,6 +387,9 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   splitter->setStretchFactor(1, 3);
   connect(splitter, &QSplitter::splitterMoved, [this, splitter] {
     QSettings().setValue(kSplitterKey, splitter->saveState());
+  });
+  connect(mCommits, &CommitList::gotoDiff, [this]{
+      mDetails->focusFiles();
   });
 
   // Create log.

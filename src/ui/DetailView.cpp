@@ -1139,6 +1139,10 @@ ContentWidget::ContentWidget(QWidget *parent)
 
 ContentWidget::~ContentWidget() {}
 
+void DetailView::focusFiles() {
+    tabWidget->setCurrentIndex(0);
+    diffWidget->focus();
+}
 DetailView::DetailView(const git::Repository &repo, QWidget *parent)
   : QWidget(parent)
 {
@@ -1153,15 +1157,15 @@ DetailView::DetailView(const git::Repository &repo, QWidget *parent)
 //  layout->addWidget(mDetail);
 
   mContent = new QStackedWidget(this);
-  auto diffWidget = new DiffWidget(repo, this);
+  diffWidget = new DiffWidget(repo, this);
   mContent->addWidget(diffWidget);
   mContent->addWidget(new TreeWidget(repo, this));
 //  layout->addWidget(mContent, 1);
 
-  QTabWidget *tabWidget = new QTabWidget();
+  tabWidget = new QTabWidget(this);
   tabWidget->addTab(mContent, tr("&DiffView"));
   tabWidget->addTab(mDetail, tr("Detai&l"));
-  tabWidget->findChild<QWidget*>()->setFocusProxy(diffWidget);
+//  tabWidget->findChild<QWidget*>()->setFocusProxy(diffWidget);
 
   layout->addWidget(tabWidget, 1);
 }
