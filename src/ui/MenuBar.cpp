@@ -327,7 +327,7 @@ MenuBar::MenuBar(QWidget *parent)
   });
 
   // Repository
-  QMenu *repository = addMenu(tr("Repository"));
+  QMenu *repository = addMenu(tr("&Repository"));
 
   mConfigureRepository = repository->addAction(tr("Configure Repository..."));
   mConfigureRepository->setMenuRole(QAction::NoRole);

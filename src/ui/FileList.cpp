@@ -322,7 +322,7 @@ void FileList::setDiff(const git::Diff &diff, const QString &pathspec)
   if (rows > 0) {
     int rowHeight = sizeHintForRow(0);
     setMinimumHeight(rowHeight + 1);
-    setMaximumHeight(rowHeight * rows + 1);
+    setMaximumHeight(rowHeight * (rows + 1));
   }
 
   updateMenu(diff);

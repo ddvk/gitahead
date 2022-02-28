@@ -68,11 +68,11 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
       mFiles->setFocus();
   });
 
-  setFocusProxy(mFiles);
+//  setFocusProxy(mFiles);
 
-  connect(mSplitter, &QSplitter::splitterMoved, [this] {
-    FileList::setFileRows(mSplitter->height() / mFiles->sizeHintForRow(0));
-  });
+//  connect(mSplitter, &QSplitter::splitterMoved, [this] {
+//    FileList::setFileRows(mSplitter->height()*2 / mFiles->sizeHintForRow(0));
+//  });
 
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setContentsMargins(0,0,0,0);

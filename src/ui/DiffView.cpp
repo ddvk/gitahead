@@ -1942,7 +1942,7 @@ public:
     if (diff.isStatusDiff()) {
       // Collapse on check.
       connect(mHeader->check(), &QCheckBox::stateChanged, [this](int state) {
-        mHeader->disclosureButton()->setChecked(state != Qt::Checked);
+//        mHeader->disclosureButton()->setChecked(state != Qt::Checked);
         if (state != Qt::PartiallyChecked) {
           foreach (HunkWidget *hunk, mHunks)
             hunk->header()->check()->setChecked(state == Qt::Checked);
@@ -2110,7 +2110,7 @@ private:
 DiffView::DiffView(const git::Repository &repo, QWidget *parent)
   : QScrollArea(parent)
 {
-  setStyleSheet(kStyleSheet);
+//  setStyleSheet(kStyleSheet);
   setAcceptDrops(true);
   setWidgetResizable(true);
   setFocusPolicy(Qt::NoFocus);
@@ -2185,7 +2185,9 @@ void DiffView::setDiff(const git::Diff &diff)
   // Begin layout.
   QVBoxLayout *layout = new QVBoxLayout(widget);
   layout->setSpacing(4);
-  layout->setSizeConstraint(QLayout::SetMinAndMaxSize);
+  layout->setContentsMargins(0,0,0,0);
+  layout->setMargin(0);
+//  layout->setSizeConstraint(QLayout::SetMinAndMaxSize);
 
   if (!diff.isValid()) {
     if (repo.isHeadUnborn()) {

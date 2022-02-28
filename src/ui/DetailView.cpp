@@ -1159,7 +1159,7 @@ DetailView::DetailView(const git::Repository &repo, QWidget *parent)
 
   QTabWidget *tabWidget = new QTabWidget();
   tabWidget->addTab(mContent, tr("&DiffView"));
-  tabWidget->addTab(mDetail, tr("D&etail"));
+  tabWidget->addTab(mDetail, tr("Detai&l"));
   tabWidget->findChild<QWidget*>()->setFocusProxy(diffWidget);
 
   layout->addWidget(tabWidget, 1);
