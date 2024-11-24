@@ -849,11 +849,17 @@ public:
       QRect star = rect;
 
       QLocale locale;
+
+      QFont monospaceFont = painter->font();
+      monospaceFont.setFamily("monospace");
+      QFontMetrics m = QFontMetrics(monospaceFont);
+
+
       QDateTime date = commit.committer().date().toLocalTime();
       QString timestamp = (date.date() == QDate::currentDate()) ?
         locale.toString(date.time(), QLocale::ShortFormat) :
         locale.toString(date.date(), QLocale::ShortFormat);
-      int timestampWidth = fm.horizontalAdvance(timestamp);
+      int timestampWidth = m.horizontalAdvance(timestamp);
 
       if (compact) {
         int maxWidthRefs = rect.width() * 0.5; // Max 50%
@@ -868,15 +874,19 @@ public:
 
         // Draw commit id.
         QString id = commit.id().toString().left(kShortIdSize);
-        int idWidth = maxShortIdWidth(fm);
+        // int idWidth = maxShortIdWidth(m);
+        int idWidth = m.horizontalAdvance(id);
 
         QRect commitRect = rect;
         commitRect.setX(commitRect.x() + commitRect.width() - idWidth);
         painter->save();
+        painter->setFont(monospaceFont);
         painter->drawText(commitRect, Qt::AlignLeft, id);
         painter->restore();
         rect.setWidth(rect.width() - idWidth - constants.hMargin);
 
+        QRect authorRect = rect;
+        authorRect.setWidth(rect.width() - idWidth*2);
         // Draw date. Only if it is not the same as previous?
         if (rect.width() > minWidthDesc + timestampWidth + 8 &&
             totalWidth > minDisplayWidthDate) {
@@ -887,6 +897,14 @@ public:
           rect.setWidth(rect.width() - timestampWidth - constants.hMargin);
         }
 
+        // Draw author
+        QString name = commit.author().email();
+        painter->save();
+        QFont bold = opt.font;
+        bold.setBold(true);
+        painter->setFont(bold);
+        painter->drawText(authorRect, Qt::AlignRight, name);
+        painter->restore();
         // Calculate remaining width for the references.
         QRect ref = rect;
         int refsWidth = ref.width() - minWidthDesc;
@@ -909,6 +927,7 @@ public:
         QString elidedText = fm.elidedText(msg, Qt::ElideRight, rect.width());
         painter->drawText(rect, Qt::ElideRight, elidedText);
         painter->restore();
+
 
       } else {
         // Draw Name.
