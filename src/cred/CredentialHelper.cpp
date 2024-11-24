@@ -30,7 +30,7 @@ CredentialHelper *CredentialHelper::instance()
   static QPointer<CredentialHelper> instance;
   if (!instance) {
     if (Settings::instance()->value(kStoreKey).toBool()) {
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MACOS)
       instance = new GitCredential("osxkeychain");
 #elif defined(Q_OS_WIN)
       // The git wincred helper fails for some users.
@@ -74,5 +74,5 @@ void CredentialHelper::log(const QString &text)
     return;
 
   QString time = QTime::currentTime().toString(Qt::ISODateWithMs);
-  QTextStream(&file) << time << " - " << text << endl;
+  QTextStream(&file) << time << " - " << text << Qt::endl;
 }

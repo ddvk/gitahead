@@ -25,7 +25,6 @@
 #include <QGuiApplication>
 #include <QScreen>
 #include <QCryptographicHash>
-#include <QDesktopWidget>
 #include <QMessageBox>
 #include <QMimeData>
 #include <QSettings>
@@ -194,7 +193,7 @@ void MainWindow::setSideBarVisible(bool visible)
 
   QTimeLine *timeline = new QTimeLine(250, this);
   timeline->setDirection(visible ? QTimeLine::Forward : QTimeLine::Backward);
-  timeline->setCurveShape(QTimeLine::LinearCurve);
+  timeline->setEasingCurve(QEasingCurve::Linear);
   timeline->setUpdateInterval(20);
 
   connect(timeline, &QTimeLine::valueChanged, [this, pos](qreal value) {
@@ -330,7 +329,7 @@ bool MainWindow::restoreWindows()
     if (paths.isEmpty())
       continue;
 
-    // Open a window new for the first valid repo.
+    // Open a new window for the first valid repo.
     MainWindow *window = open(paths.takeFirst());
     while (!window && !paths.isEmpty())
       window = open(paths.takeFirst());
@@ -615,7 +614,7 @@ QString MainWindow::windowGroup() const
   return QString::fromUtf8(hash.toHex());
 }
 
-#ifndef Q_OS_MAC
+#ifndef Q_OS_MACOS
 void MainWindow::installTouchBar() {}
 void MainWindow::updateTouchBar(int ahead, int behind) {}
 #endif

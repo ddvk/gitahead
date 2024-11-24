@@ -1,10 +1,7 @@
-[![Actions Status](https://github.com/gitahead/gitahead/workflows/GitAhead%20%28master%29/badge.svg)](https://github.com/gitahead/gitahead/actions) [![Actions Status](https://github.com/gitahead/gitahead/workflows/GitAhead%20%28stage%29/badge.svg)](https://github.com/gitahead/gitahead/actions)
-
-
 Please Note!
 ============
 GitAhead is no longer under active development. Low-level maintenance and bug
-fix releases will be made as necessary for the forseeable future, but no new
+fix releases will be made as necessary for the foreseeable future, but no new
 features or major changes are planned at this time. Please consider continuing
 development in a *rebranded* fork for anything other than trivial changes.
 

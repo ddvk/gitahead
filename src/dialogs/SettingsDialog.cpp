@@ -12,7 +12,6 @@
 #include "DiffPanel.h"
 #include "ExternalToolsDialog.h"
 #include "PluginsPanel.h"
-#include "app/Application.h"
 #include "app/CustomTheme.h"
 #include "conf/Settings.h"
 #include "cred/CredentialHelper.h"
@@ -26,7 +25,7 @@
 #include "ui/RepoView.h"
 #include "update/Updater.h"
 #include <QAction>
-#include <QApplication>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -120,13 +119,6 @@ public:
     mStoreCredentials = new QCheckBox(
       tr("Store credentials in secure storage"), this);
 
-    mUsageReporting = new QCheckBox(
-      tr("Allow collection of usage data"), this);
-    QLabel *privacy = new QLabel(tr("<a href='view'>View privacy policy</a>"));
-    connect(privacy, &QLabel::linkActivated, [] {
-      AboutDialog::openSharedInstance(AboutDialog::Privacy);
-    });
-
     QFormLayout *form = new QFormLayout;
     form->addRow(tr("User name:"), mName);
     form->addRow(tr("User email:"), mEmail);
@@ -136,8 +128,6 @@ public:
     form->addRow(QString(), mAutoPrune);
     form->addRow(tr("Language:"), mNoTranslation);
     form->addRow(tr("Credentials:"), mStoreCredentials);
-    form->addRow(tr("Usage reporting:"), mUsageReporting);
-    form->addRow(QString(), privacy);
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(16,12,16,12);
@@ -187,10 +177,6 @@ public:
       Settings::instance()->setValue("credential/store", checked);
       delete CredentialHelper::instance();
     });
-
-    connect(mUsageReporting, &QCheckBox::toggled, [](bool checked) {
-      Settings::instance()->setValue("tracking/enabled", checked);
-    });
   }
 
   void init()
@@ -213,7 +199,6 @@ public:
 
     mNoTranslation->setChecked(settings->value("translation/disable").toBool());
     mStoreCredentials->setChecked(settings->value("credential/store").toBool());
-    mUsageReporting->setChecked(settings->value("tracking/enabled").toBool());
   }
 
 private:
@@ -227,7 +212,6 @@ private:
   QCheckBox *mAutoPrune;
   QCheckBox *mNoTranslation;
   QCheckBox *mStoreCredentials;
-  QCheckBox *mUsageReporting;
 };
 
 class ToolsPanel : public QWidget
@@ -892,8 +876,6 @@ SettingsDialog::SettingsDialog(Index index, QWidget *parent)
 
 void SettingsDialog::openSharedInstance(Index index)
 {
-  Application::track("SettingsDialog");
-
   static QPointer<SettingsDialog> dialog;
   if (dialog) {
     dialog->show();

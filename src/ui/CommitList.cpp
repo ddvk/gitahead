@@ -15,6 +15,8 @@
 #include "RepoView.h"
 #include "app/Application.h"
 #include "conf/Settings.h"
+#include "dialogs/DeleteBranchDialog.h"
+#include "dialogs/DeleteTagDialog.h"
 #include "dialogs/DiffFileDialog.h"
 #include "dialogs/MergeDialog.h"
 #include "git/Branch.h"
@@ -205,14 +207,15 @@ public:
     // Reset state.
     mParents.clear();
     mRows.clear();
-    mOursId = 0;
-    mTheirsId = 0;
+
+    mOursId = git::Id();
+    mTheirsId = git::Id();
 
     // Update status row.
     bool head = (!mRef.isValid() || mRef.isHead());
     bool valid = (mCleanStatus || !mStatus.isFinished() || status().isValid());
     if (head && valid && mPathspec.isEmpty()) {
-      QVector<Column> row;
+      QList<Column> row;
       if (mGraphVisible && mRef.isValid() && mStatus.isFinished()) {
         row.append({Segment(Bottom, kTaintedColor), Segment(Dot, QColor())});
         mParents.append(Parent(mRef.target(), nextColor(), true));
@@ -274,12 +277,12 @@ public:
       resetWalker();
   }
 
-  bool canFetchMore(const QModelIndex &parent) const
+  bool canFetchMore(const QModelIndex &parent) const override
   {
     return mWalker.isValid();
   }
 
-  void fetchMore(const QModelIndex &parent)
+  void fetchMore(const QModelIndex &parent) override
   {
     // Load commits.
     int i = 0;
@@ -318,7 +321,7 @@ public:
       }
 
       // Add graph row.
-      QVector<Column> row;
+      QList<Column> row;
       if (mGraphVisible && mPathspec.isEmpty())
         row = columns(commit, parents, root);
 
@@ -345,12 +348,14 @@ public:
       mWalker = git::RevWalk();
   }
 
-  int rowCount(const QModelIndex &parent = QModelIndex()) const
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override
   {
     return mRows.size();
   }
 
-  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const
+  QVariant data(
+    const QModelIndex &index,
+    int role = Qt::DisplayRole) const override
   {
     const Row &row = mRows.at(index.row());
     bool status = !row.commit.isValid();
@@ -377,7 +382,7 @@ public:
 
         return QVariant(Qt::AlignHCenter | Qt::AlignVCenter);
 
-      case Qt::BackgroundColorRole:
+      case Qt::BackgroundRole:
         if (!status) {
           if (row.commit.id() == mOursId)
             return QColor(Application::theme()->diff(Theme::Diff::Ours));
@@ -470,12 +475,12 @@ private:
 
   struct Row
   {
-    Row(const git::Commit &commit, const QVector<Column> &columns)
+    Row(const git::Commit &commit, const QList<Column> &columns)
       : commit(commit), columns(columns)
     {}
 
     git::Commit commit;
-    QVector<Column> columns;
+    QList<Column> columns;
   };
 
   int indexOf(const git::Commit &commit) const
@@ -506,13 +511,13 @@ private:
 
   // The commit and parents parameters represent the current row.
   // The mParents member represents the next row after this one.
-  QVector<Column> columns(
+  QList<Column> columns(
     const git::Commit &commit,
     const QList<Parent> &parents,
     bool root)
   {
     int count = parents.size();
-    QVector<Column> columns(count);
+    QList<Column> columns(count);
 
     // Add incoming paths.
     int incoming = root ? count - 1 : count;
@@ -843,10 +848,11 @@ public:
       const QFontMetrics &fm = opt.fontMetrics;
       QRect star = rect;
 
+      QLocale locale;
       QDateTime date = commit.committer().date().toLocalTime();
       QString timestamp = (date.date() == QDate::currentDate()) ?
-        date.time().toString(Qt::DefaultLocaleShortDate) :
-        date.date().toString(Qt::DefaultLocaleShortDate);
+        locale.toString(date.time(), QLocale::ShortFormat) :
+        locale.toString(date.date(), QLocale::ShortFormat);
       int timestampWidth = fm.horizontalAdvance(timestamp);
 
       if (compact) {
@@ -1144,28 +1150,6 @@ private:
   mutable int mMaxShortIdWidth = -1;
 };
 
-class SelectionModel : public QItemSelectionModel
-{
-public:
-  SelectionModel(QAbstractItemModel *model)
-    : QItemSelectionModel(model)
-  {}
-
-  void select(
-    const QItemSelection &selection,
-    QItemSelectionModel::SelectionFlags command)
-  {
-    if ((command == QItemSelectionModel::Select ||
-         command == QItemSelectionModel::SelectCurrent ||
-         command == (QItemSelectionModel::Current |
-                     QItemSelectionModel::ClearAndSelect)) &&
-        (selectedIndexes().size() >= 2 || selection.indexes().size() > 1))
-          return;
-
-    QItemSelectionModel::select(selection, command);
-  }
-};
-
 } // anon. namespace
 
 CommitList::CommitList(Index *index, QWidget *parent)
@@ -1181,7 +1165,7 @@ CommitList::CommitList(Index *index, QWidget *parent)
   setMouseTracking(true);
   setUniformItemSizes(true);
   setAttribute(Qt::WA_MacShowFocusRect, false);
-  setSelectionMode(QAbstractItemView::ExtendedSelection);
+  setSelectionMode(QAbstractItemView::SingleSelection);
 
   setModel(mModel);
   setItemDelegate(new CommitDelegate(repo, this));
@@ -1232,7 +1216,7 @@ CommitList::CommitList(Index *index, QWidget *parent)
     }
   });
 
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
   QFont font = this->font();
   font.setPointSize(13);
   setFont(font);
@@ -1440,16 +1424,11 @@ void CommitList::setModel(QAbstractItemModel *model)
 
   storeSelection();
 
-  // Destroy the previous selection model.
-  delete selectionModel();
-
+  QItemSelectionModel *sm = selectionModel();
   QListView::setModel(model);
+  delete sm;
 
-  // Destroy the selection model created by Qt.
-  delete selectionModel();
-
-  SelectionModel *selectionModel = new SelectionModel(model);
-  connect(selectionModel, &QItemSelectionModel::selectionChanged,
+  connect(selectionModel(), &QItemSelectionModel::selectionChanged,
   [this](const QItemSelection &selected, const QItemSelection &deselected) {
     // Update the index before each selected/deselected range.
     foreach (const QItemSelectionRange &range, selected + deselected) {
@@ -1459,8 +1438,6 @@ void CommitList::setModel(QAbstractItemModel *model)
 
     notifySelectionChanged();
   });
-
-  setSelectionModel(selectionModel);
 
   restoreSelection();
 }
@@ -1562,17 +1539,17 @@ void CommitList::contextMenuEvent(QContextMenuEvent *event)
             separator = false;
           }
           menu.addAction(tr("Delete Tag %1").arg(ref.name()), [view, ref] {
-            view->promptToDeleteTag(ref);
+            DeleteTagDialog::open(ref, view);
           });
         }
         if (ref.isLocalBranch() &&
-           (view->repo().head().name() != ref.name())) {
+            (view->repo().head().name() != ref.name())) {
           if (separator) {
             menu.addSeparator();
             separator = false;
           }
           menu.addAction(tr("Delete Branch %1").arg(ref.name()), [view, ref] {
-            view->promptToDeleteBranch(ref);
+            DeleteBranchDialog::open(ref, view);
           });
         }
       }
@@ -1742,9 +1719,51 @@ void CommitList::leaveEvent(QEvent *event)
   QListView::leaveEvent(event);
 }
 
+QItemSelectionModel::SelectionFlags CommitList::selectionCommand(
+  const QModelIndex &index,
+  const QEvent *event) const
+{
+  if (event) {
+    switch (event->type()) {
+      case QEvent::MouseMove:
+      case QEvent::MouseButtonRelease:
+        return QItemSelectionModel::NoUpdate;
+
+      case QEvent::MouseButtonPress: {
+        Qt::KeyboardModifiers modifiers =
+          static_cast<const QInputEvent *>(event)->modifiers();
+        if (modifiers & Qt::ControlModifier) {
+          int count = selectedIndexes().count();
+          if (selectionModel()->isSelected(index)) {
+            if (count == 1)
+              return QItemSelectionModel::NoUpdate;
+            if (count == 2)
+              return QItemSelectionModel::Toggle;
+          } else {
+            if (count == 1)
+              return QItemSelectionModel::Toggle;
+            if (count == 2)
+              return QItemSelectionModel::NoUpdate;
+          }
+        }
+
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  return QListView::selectionCommand(index, event);
+}
+
 void CommitList::storeSelection()
 {
   mSelectedRange = selectedRange();
+
+  if (QItemSelectionModel *sm = selectionModel())
+    sm->clear();
 }
 
 void CommitList::restoreSelection()
@@ -1851,10 +1870,12 @@ bool CommitList::isDecoration(const QModelIndex &index, const QPoint &pos)
   if (!index.isValid())
     return false;
 
+  QStyleOptionViewItem option;
+  initViewItemOption(&option);
+  option.rect = visualRect(index);
+
   CommitDelegate *delegate = static_cast<CommitDelegate *>(itemDelegate());
-  QStyleOptionViewItem options = viewOptions();
-  options.rect = visualRect(index);
-  return delegate->decorationRect(options, index).contains(pos);
+  return delegate->decorationRect(option, index).contains(pos);
 }
 
 bool CommitList::isStar(const QModelIndex &index, const QPoint &pos)
@@ -1862,10 +1883,12 @@ bool CommitList::isStar(const QModelIndex &index, const QPoint &pos)
   if (!index.isValid() || !index.data(CommitRole).isValid())
     return false;
 
+  QStyleOptionViewItem option;
+  initViewItemOption(&option);
+  option.rect = visualRect(index);
+
   CommitDelegate *delegate = static_cast<CommitDelegate *>(itemDelegate());
-  QStyleOptionViewItem options = viewOptions();
-  options.rect = visualRect(index);
-  return delegate->starRect(options, index).contains(pos);
+  return delegate->starRect(option, index).contains(pos);
 }
 
 void CommitList::saveDiff(const QString &path) const

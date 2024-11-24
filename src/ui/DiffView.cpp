@@ -19,7 +19,6 @@
 #include "git/Blame.h"
 #include "git/Blob.h"
 #include "git/Branch.h"
-#include "git/Buffer.h"
 #include "git/Commit.h"
 #include "git/FilterList.h"
 #include "git/Index.h"
@@ -55,9 +54,9 @@
 #include <QTableWidget>
 #include <QTextEdit>
 #include <QTextLayout>
-#include <QTextStream>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <QWindow>
 #include <QtMath>
 
 namespace {
@@ -166,7 +165,7 @@ public:
     QTextCharFormat timestamp;
     timestamp.setForeground(theme->remoteComment(Theme::Comment::Timestamp));
     cursor.setCharFormat(timestamp);
-    cursor.insertText(date.toString(Qt::DefaultLocaleLongDate));
+    cursor.insertText(QLocale().toString(date, QLocale::LongFormat));
 
     QTextBlockFormat indent;
     indent.setLeftMargin(fontMetrics().horizontalAdvance(' ') * kIndent);
@@ -585,7 +584,9 @@ private:
     QFileIconProvider provider;
     QString path = mPatch.repo().workdir().filePath(mPatch.name());
     QIcon icon = provider.icon(QFileInfo(path));
-    return icon.pixmap(windowHandle(), QSize(64, 64));
+
+    QWindow *window = windowHandle();
+    return icon.pixmap({64, 64}, window ? window->devicePixelRatio() : 1.0);
   }
 
   QVBoxLayout *imageLayout(const QPixmap pixmap, int size)
@@ -605,75 +606,6 @@ private:
 
   git::Patch mPatch;
 };
-
-void lookupCommitInfos(
-  const git::Repository &repo,
-  bool ours,
-  QToolButton *button)
-{
-  // Find id.
-  QString id;
-  if (ours) {
-    id = repo.head().target().id().toString();
-  } else {
-    git::Reference mergeHead = repo.lookupRef("MERGE_HEAD");
-    if (mergeHead.isValid())
-      id = mergeHead.annotatedCommit().commit().id().toString();
-  }
-
-  if (id.isEmpty())
-    return;
-
-  QString branch;
-  QString tooltip;
-
-  // Commit detail lookup.
-  git::RevWalk walker = repo.walker();
-  while (git::Commit commit = walker.next()) {
-    QList<git::Reference> refs = commit.refs();
-    foreach (const git::Reference &ref, refs) {
-      if (id == ref.name()) {
-        id = commit.id().toString();
-        break;
-      }
-    }
-
-    if (id == commit.id().toString()) {
-      // Set branch name.
-      foreach (const git::Reference &ref, refs) {
-        if (ref.isLocalBranch()) {
-          branch = ref.name();
-          break;
-        }
-        else if (ref.isTag())
-          branch = ref.name();
-      }
-
-      // Set tooltip.
-      tooltip.append(commit.id().toString().left(7));
-      tooltip.append("\n");
-      tooltip.append(commit.author().name());
-      tooltip.append("\n");
-      tooltip.append(commit.author().date()
-                     .toString(Qt::DefaultLocaleShortDate));
-      break;
-    }
-  }
-
-  // Branch: elide, set id if empty
-  if (branch.length() > 20) {
-    branch.chop(17);
-    branch.append("...");
-  }
-  if (branch.isEmpty())
-    branch = id.left(7);
-
-  // Set button text and tooltip.
-  if (!branch.isEmpty())
-    button->setText(button->text() + " (" + branch + ")");
-  if (!tooltip.isEmpty())
-    button->setToolTip(tooltip);
-}
 
 class HunkWidget : public QFrame
 {
@@ -718,7 +650,6 @@ public:
         mOurs->setObjectName("ConflictOurs");
         mOurs->setStyleSheet(buttonStyle(Theme::Diff::Ours));
         mOurs->setText(HunkWidget::tr("Use Ours"));
-        lookupCommitInfos(patch.repo(), true, mOurs);
         connect(mOurs, &QToolButton::clicked, [this] {
           mSave->setVisible(true);
           mUndo->setVisible(true);
@@ -730,7 +661,6 @@ public:
         mTheirs->setObjectName("ConflictTheirs");
         mTheirs->setStyleSheet(buttonStyle(Theme::Diff::Theirs));
         mTheirs->setText(HunkWidget::tr("Use Theirs"));
-        lookupCommitInfos(patch.repo(), false, mTheirs);
         connect(mTheirs, &QToolButton::clicked, [this] {
           mSave->setVisible(true);
           mUndo->setVisible(true);
@@ -940,9 +870,7 @@ public:
         if (!file.open(QFile::WriteOnly))
           return;
 
-        QTextStream out(&file);
-        out.setCodec(repo.codec());
-        out << editor.text();
+        file.write(repo.encode(editor.text()));
         file.commit();
 
         mPatch.setConflictResolution(mIndex, git::Patch::Unresolved);
@@ -1061,9 +989,7 @@ public:
           if (!file.open(QFile::WriteOnly))
             return;
 
-          QTextStream out(&file);
-          out.setCodec(repo.codec());
-          out << editor.text();
+          file.write(repo.encode(editor.text()));
           file.commit();
 
           table->hide();
@@ -1232,7 +1158,11 @@ private:
       int oldLine = mPatch.lineNumber(mIndex, lidx, git::Diff::OldFile);
       int newLine = mPatch.lineNumber(mIndex, lidx, git::Diff::NewFile);
       lines << Line(origin, oldLine, newLine);
-      content += mPatch.lineContent(mIndex, lidx);
+
+      // FIXME: Allow user to load long lines?
+      QByteArray lineContent = mPatch.lineContent(mIndex, lidx);
+      lineContent.truncate(1024);
+      content += lineContent;
     }
 
     // Trim final line end.
@@ -1255,7 +1185,8 @@ private:
     }
 
     // Get comments for this file.
-    Account::FileComments comments = mView->comments().files.value(mPatch.name());
+    Account::FileComments comments =
+      mView->comments().files.value(mPatch.name());
 
     // Add markers and line numbers.
     int additions = 0;
@@ -1286,6 +1217,7 @@ private:
         int margin = QFontMetrics(font).horizontalAdvance(' ') * kIndent * 2;
         int width = mEditor->textRectangle().width() - margin - 50;
 
+        QLocale locale;
         foreach (const QDateTime &key, it->keys()) {
           QStringList paragraphs;
           Account::Comment comment = it->value(key);
@@ -1314,7 +1246,7 @@ private:
           }
 
           QString author = comment.author;
-          QString time = key.toString(Qt::DefaultLocaleLongDate);
+          QString time = locale.toString(key, QLocale::LongFormat);
           QString body = paragraphs.join('\n');
           QString text = author + ' ' + time + '\n' + body;
           QByteArray styles =
@@ -1795,11 +1727,11 @@ public:
       }
 
       mDisclosureButton = new DisclosureButton(this);
-      mDisclosureButton->setToolTip(
-        mDisclosureButton->isChecked() ? FileWidget::tr("Collapse File") : FileWidget::tr("Expand File"));
+      mDisclosureButton->setToolTip(mDisclosureButton->isChecked() ?
+        FileWidget::tr("Collapse File") : FileWidget::tr("Expand File"));
       connect(mDisclosureButton, &DisclosureButton::toggled, [this] {
-        mDisclosureButton->setToolTip(
-          mDisclosureButton->isChecked() ? FileWidget::tr("Collapse File") : FileWidget::tr("Expand File"));
+        mDisclosureButton->setToolTip(mDisclosureButton->isChecked() ?
+          FileWidget::tr("Collapse File") : FileWidget::tr("Expand File"));
       });
       buttons->addWidget(mDisclosureButton);
 
@@ -1904,12 +1836,9 @@ public:
 
     bool binary = patch.isBinary();
     if (patch.isUntracked()) {
-      QFile dev(path);
-      if (dev.open(QFile::ReadOnly)) {
-        QByteArray content = dev.readAll();
-        git::Buffer buffer(content.constData(), content.length());
-        binary = buffer.isBinary();
-      }
+      QFile file(path);
+      if (file.open(QFile::ReadOnly))
+        binary = git::Blob::isBinary(file.readAll());
     }
 
     bool lfs = patch.isLfsPointer();
@@ -1919,7 +1848,6 @@ public:
 
     DisclosureButton *disclosureButton = mHeader->disclosureButton();
     connect(disclosureButton, &DisclosureButton::toggled, [this](bool visible) {
-
       if (mHeader->lfsButton() && !visible) {
         mHunks.first()->setVisible(false);
         if (!mImages.isEmpty())
@@ -1998,22 +1926,24 @@ public:
     }
 
     // Start hidden when the file is checked.
-    bool expand = (mHeader->check()->checkState() == Qt::Unchecked);
+    bool expanded = (mHeader->check()->checkState() == Qt::Unchecked);
+    bool enabled = true;
 
     if (Settings::instance()->value("collapse/added").toBool() == true &&
         patch.status() == GIT_DELTA_ADDED)
-      expand = false;
+      expanded = false;
 
     if (Settings::instance()->value("collapse/deleted").toBool() == true &&
         patch.status() == GIT_DELTA_DELETED)
-      expand = false;
+      expanded = false;
 
-    disclosureButton->setChecked(expand);
-  }
+    if (mHunks.isEmpty() && mImages.isEmpty()) {
+      expanded = false;
+      enabled = false;
+    }
 
-  bool isEmpty()
-  {
-    return (mHunks.isEmpty() && mImages.isEmpty());
+    disclosureButton->setChecked(expanded);
+    disclosureButton->setEnabled(enabled);
   }
 
   Header *header() const { return mHeader; }
@@ -2240,6 +2170,8 @@ void DiffView::setDiff(const git::Diff &diff)
   if (canFetchMore())
     fetchMore();
 
+  QTimer::singleShot(0, this, &DiffView::checkFetchNeeded);
+
   // Load patches on demand.
   QScrollBar *scrollBar = verticalScrollBar();
   mConnections.append(
@@ -2286,7 +2218,7 @@ bool DiffView::scrollToFile(int index)
 void DiffView::setFilter(const QStringList &paths)
 {
   fetchAll();
-  QSet<QString> set = QSet<QString>::fromList(paths);
+  QSet<QString> set(paths.constBegin(), paths.constEnd());
   foreach (QWidget *widget, mFiles) {
     FileWidget *file = static_cast<FileWidget *>(widget);
     file->setVisible(set.isEmpty() || set.contains(file->name()));
@@ -2383,12 +2315,6 @@ void DiffView::fetchMore()
 
     mFiles.append(file);
 
-    if (file->isEmpty()) {
-      DisclosureButton *button = file->header()->disclosureButton();
-      button->setChecked(false);
-      button->setEnabled(false);
-    }
-
     // Respond to diagnostic signal.
     connect(file, &FileWidget::diagnosticAdded,
             this, &DiffView::diagnosticAdded);
@@ -2409,6 +2335,14 @@ void DiffView::fetchAll(int index)
   // Load all patches up to and including index.
   while ((index < 0 || mFiles.size() <= index) && canFetchMore())
     fetchMore();
+}
+
+void DiffView::checkFetchNeeded()
+{
+  if (canFetchMore() && verticalScrollBar()->maximum() == 0) {
+    fetchMore();
+    QTimer::singleShot(0, this, &DiffView::checkFetchNeeded);
+  }
 }
 
 #include "DiffView.moc"

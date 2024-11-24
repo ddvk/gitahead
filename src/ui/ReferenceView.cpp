@@ -26,6 +26,7 @@
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMenu>
+#include <QRegularExpression>
 #include <QSortFilterProxyModel>
 #include <QStyledItemDelegate>
 #include <QTreeView>
@@ -204,8 +205,9 @@ public:
           QString email = QString("&lt;%1&gt;").arg(signature.email());
           lines.append(kNowrapFmt.arg(QString("%1 %2").arg(name, email)));
 
-          QString date = signature.date().toString(Qt::DefaultLocaleLongDate);
-          lines.append(kNowrapFmt.arg(date));
+          QDateTime date = signature.date();
+          QString dateStr = QLocale().toString(date, QLocale::LongFormat);
+          lines.append(kNowrapFmt.arg(dateStr));
         }
 
         QString msg = tag.message();
@@ -252,7 +254,9 @@ public:
 
   void setFilter(const QString &filter)
   {
-    setFilterRegExp(QRegExp(filter, Qt::CaseInsensitive, QRegExp::FixedString));
+    QString pattern = QRegularExpression::escape(filter);
+    setFilterRegularExpression(
+      QRegularExpression(pattern, QRegularExpression::CaseInsensitiveOption));
   }
 
 protected:
@@ -508,19 +512,13 @@ void ReferenceView::contextMenuEvent(QContextMenuEvent *event)
   if (ref.isTag() || ref.isLocalBranch()) {
     QAction *remove = menu.addAction(tr("Delete"), [this, ref] {
       if (ref.isTag()) {
-        DeleteTagDialog *dialog = new DeleteTagDialog(ref, this);
-        dialog->setAttribute(Qt::WA_DeleteOnClose);
-        dialog->open();
-
+        DeleteTagDialog::open(ref, this);
       } else {
-        DeleteBranchDialog *dialog = new DeleteBranchDialog(ref, this);
-        dialog->setAttribute(Qt::WA_DeleteOnClose);
-        dialog->open();
+        DeleteBranchDialog::open(ref, this);
       }
     });
 
     remove->setEnabled(ref.isTag() || !ref.isHead());
-
   }
 
   if (ref.isTag()) {

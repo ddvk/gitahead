@@ -3,7 +3,6 @@ add_library(git
   Blame.cpp
   Blob.cpp
   Branch.cpp
-  Buffer.cpp
   Command.cpp
   Commit.cpp
   Config.cpp
@@ -28,9 +27,10 @@ add_library(git
 )
 
 target_link_libraries(git
-  git2
-  Qt5::Core
-  Qt5::Network
+  libgit2package
+  Qt6::Core
+  Qt6::Core5Compat
+  Qt6::Network
 )
 
 set_target_properties(git PROPERTIES

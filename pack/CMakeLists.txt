@@ -14,27 +14,30 @@ if(APPLE)
     ${QT_PLUGINS}
     QCocoaIntegrationPlugin
     QMacStylePlugin
+    QSecureTransportBackendPlugin
   )
 elseif(WIN32)
   set(QT_PLUGINS
     ${QT_PLUGINS}
+    QTlsBackendOpenSSLPlugin
     QWindowsIntegrationPlugin
     QWindowsVistaStylePlugin
   )
 else()
   set(QT_PLUGINS
     ${QT_PLUGINS}
-    QXcbIntegrationPlugin
     QComposePlatformInputContextPlugin
+    QTlsBackendOpenSSLPlugin
+    QXcbIntegrationPlugin
   )
 endif()
 
 foreach(QT_PLUGIN ${QT_PLUGINS})
-  if(NOT TARGET Qt5::${QT_PLUGIN})
+  if(NOT TARGET Qt6::${QT_PLUGIN})
     continue()
   endif()
 
-  get_target_property(PLUGIN Qt5::${QT_PLUGIN} LOCATION_${CMAKE_BUILD_TYPE})
+  get_target_property(PLUGIN Qt6::${QT_PLUGIN} LOCATION_${CMAKE_BUILD_TYPE})
   get_filename_component(FILE_NAME ${PLUGIN} NAME)
   get_filename_component(DIR ${PLUGIN} DIRECTORY)
   get_filename_component(DIR_NAME ${DIR} NAME)
@@ -78,10 +81,12 @@ endforeach()
 
 # Install Qt libraries.
 foreach(QT_MODULE ${QT_MODULES})
-  get_target_property(QT_LIBRARY Qt5::${QT_MODULE} LOCATION_${CMAKE_BUILD_TYPE})
+  get_target_property(QT_LIBRARY Qt6::${QT_MODULE} LOCATION_${CMAKE_BUILD_TYPE})
 
   if(APPLE)
     get_filename_component(QT_FRAMEWORK ${QT_LIBRARY} DIRECTORY)
+    get_filename_component(QT_FRAMEWORK ${QT_FRAMEWORK} DIRECTORY)
+    get_filename_component(QT_FRAMEWORK ${QT_FRAMEWORK} DIRECTORY)
     set(DEST_DIR ${CONTENTS_DIR}/Frameworks)
     install(DIRECTORY ${QT_FRAMEWORK}
       DESTINATION ${DEST_DIR}
@@ -128,8 +133,8 @@ endforeach()
 
 # Install XcbQpa library.
 if(UNIX AND NOT APPLE)
-  set(LIB_NAME libQt5XcbQpa)
-  get_target_property(QT_CORE_LIBRARY Qt5::Core LOCATION)
+  set(LIB_NAME libQt6XcbQpa)
+  get_target_property(QT_CORE_LIBRARY Qt6::Core LOCATION)
   get_filename_component(LIB_PATH ${QT_CORE_LIBRARY} PATH)
   get_filename_component(LIB_EXT ${QT_CORE_LIBRARY} EXT)
 
@@ -145,13 +150,9 @@ endif()
 # Install SSL libraries.
 if(NOT APPLE)
   if(WIN32)
-    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-      set(SSL_LIB_SUFFIX "-1_1-x64.dll")
-    else()
-      set(SSL_LIB_SUFFIX "-1_1.dll")
-    endif()
+    set(SSL_LIB_SUFFIX "-3-x64.dll")
   else()
-    set(SSL_LIB_SUFFIX ".so.1.1")
+    set(SSL_LIB_SUFFIX ".so.3")
   endif()
 
   foreach(SSL_LIB_NAME ssl crypto)

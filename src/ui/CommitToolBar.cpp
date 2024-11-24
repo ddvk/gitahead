@@ -12,6 +12,7 @@
 #include "RepoView.h"
 #include "conf/Settings.h"
 #include "git/Config.h"
+#include <QActionGroup>
 #include <QApplication>
 #include <QMenu>
 #include <QPainter>
@@ -82,7 +83,7 @@ public:
       setText(action->text());
     });
 
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
     QFont font = this->font();
     font.setPointSize(11);
     setFont(font);

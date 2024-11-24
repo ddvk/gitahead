@@ -360,11 +360,12 @@ QSize FileList::sizeHint() const
 
 QRect FileList::checkRect(const QModelIndex &index)
 {
-  QStyleOptionViewItem options = viewOptions();
-  options.rect = visualRect(index);
+  QStyleOptionViewItem option;
+  initViewItemOption(&option);
+  option.rect = visualRect(index);
 
   FileDelegate *delegate = static_cast<FileDelegate *>(itemDelegate());
-  return delegate->checkRect(options, index);
+  return delegate->checkRect(option, index);
 }
 
 void FileList::setFileRows(int rows)
@@ -433,7 +434,8 @@ void FileList::updateMenu(const git::Diff &diff)
   int role = settings->value("sort/role").toInt();
   int order = settings->value("sort/order").toInt();
 
-  qreal dpr = window()->windowHandle()->devicePixelRatio();
+  QWindow *window = this->window()->windowHandle();
+  qreal dpr = window ? window->devicePixelRatio() : 1.0;
   QPixmap pixmap(16 * dpr, 16 * dpr);
   pixmap.setDevicePixelRatio(dpr);
   pixmap.fill(Qt::transparent);

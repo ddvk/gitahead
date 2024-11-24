@@ -17,22 +17,17 @@
 #include "update/Updater.h"
 #include <QCloseEvent>
 #include <QCommandLineParser>
-#include <QDesktopServices>
 #include <QDir>
 #include <QFileInfo>
 #include <QFontDatabase>
 #include <QMessageBox>
-#include <QNetworkAccessManager>
 #include <QNetworkProxyFactory>
 #include <QNetworkReply>
-#include <QOperatingSystemVersion>
 #include <QSettings>
 #include <QTimer>
 #include <QTranslator>
-#include <QUrlQuery>
-#include <QUuid>
 
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MACOS)
 #include <unistd.h>
 
 #elif defined(Q_OS_WIN)
@@ -54,22 +49,22 @@ static LONG WINAPI exceptionFilter(PEXCEPTION_POINTERS info)
   SYSTEMTIME localTime;
   GetLocalTime(&localTime);
 
-  char temp[MAX_PATH];
-  GetTempPath(MAX_PATH, temp);
+  wchar_t temp[MAX_PATH];
+  GetTempPathW(MAX_PATH, temp);
 
-  char dir[MAX_PATH];
-  StringCchPrintf(dir, MAX_PATH, "%sGitAhead", temp);
-  CreateDirectory(dir, NULL);
+  wchar_t dir[MAX_PATH];
+  StringCchPrintfW(dir, MAX_PATH, L"%sGitAhead", temp);
+  CreateDirectoryW(dir, NULL);
 
-  char fileName[MAX_PATH];
-  StringCchPrintf(fileName, MAX_PATH,
-    "%s\\%s-%s-%04d%02d%02d-%02d%02d%02d-%ld-%ld.dmp",
+  wchar_t fileName[MAX_PATH];
+  StringCchPrintfW(fileName, MAX_PATH,
+    L"%s\\%s-%s-%04d%02d%02d-%02d%02d%02d-%ld-%ld.dmp",
     dir, GITAHEAD_NAME, GITAHEAD_VERSION,
     localTime.wYear, localTime.wMonth, localTime.wDay,
     localTime.wHour, localTime.wMinute, localTime.wSecond,
     GetCurrentProcessId(), GetCurrentThreadId());
 
-  HANDLE dumpFile = CreateFile(fileName, GENERIC_READ|GENERIC_WRITE,
+  HANDLE dumpFile = CreateFileW(fileName, GENERIC_READ|GENERIC_WRITE,
     FILE_SHARE_WRITE|FILE_SHARE_READ, 0, CREATE_ALWAYS, 0, 0);
 
   MINIDUMP_EXCEPTION_INFORMATION expParam;
@@ -83,30 +78,6 @@ static LONG WINAPI exceptionFilter(PEXCEPTION_POINTERS info)
   return defaultFilter ? defaultFilter(info) : EXCEPTION_CONTINUE_SEARCH;
 }
 #endif
-
-namespace {
-
-const QString kUserAgentFmt = "%1/%2 (%3)";
-
-QString userAgentSystem()
-{
-#if defined(Q_OS_WIN)
-  QOperatingSystemVersion current = QOperatingSystemVersion::current();
-  if (current < QOperatingSystemVersion::Windows8) {
-    return "Windows NT 6.1";
-  } else if (current < QOperatingSystemVersion::Windows10) {
-    return "Windows NT 6.2";
-  } else {
-    return "Windows NT 10.0";
-  }
-#elif defined(Q_OS_MAC)
-  return "Macintosh";
-#else
-  return "Linux";
-#endif
-}
-
-} // anon. namespace
 
 Application::Application(
   int &argc,
@@ -195,7 +166,7 @@ Application::Application(
   QNetworkProxyFactory::setUseSystemConfiguration(true);
 
   // Do platform-specific initialization.
-#if defined(Q_OS_MAC)
+#if defined(Q_OS_MACOS)
   // Register service on Mac.
   registerService();
 
@@ -235,27 +206,6 @@ Application::Application(
     sendPostedEvents(nullptr, QEvent::DeferredDelete);
     git::Repository::shutdown();
   });
-
-  // Read tracking settings.
-  settings.beginGroup("tracking");
-  QByteArray tid(GITAHEAD_TRACKING_ID);
-  if (!tid.isEmpty() && settings.value("enabled", true).toBool()) {
-    // Get or create persistent client ID.
-    mClientId = settings.value("id").toString();
-    if (mClientId.isEmpty()) {
-      mClientId = QUuid::createUuid().toString();
-      settings.setValue("id", mClientId);
-    }
-
-    // Fire and forget, except to free the reply.
-    mTrackingMgr = new QNetworkAccessManager(this);
-    connect(mTrackingMgr, &QNetworkAccessManager::finished,
-    [](QNetworkReply *reply) {
-      reply->deleteLater();
-    });
-  }
-
-  settings.endGroup();
 }
 
 void Application::autoUpdate()
@@ -277,7 +227,7 @@ void Application::autoUpdate()
 
 bool Application::restoreWindows()
 {
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
   // Check for connection to a terminal.
   if (!isatty(fileno(stdin)))
     QDir::setCurrent(Settings::appDir().path());
@@ -323,65 +273,12 @@ Theme *Application::theme()
   return static_cast<Application *>(instance())->mTheme.data();
 }
 
-void Application::track(const QString &screen)
-{
-  QUrlQuery query;
-  query.addQueryItem("t", "screenview");
-  query.addQueryItem("cd", screen);
-
-  static_cast<Application *>(instance())->track(query);
-}
-
-void Application::track(
-  const QString &category,
-  const QString &action,
-  const QString &label,
-  int value)
-{
-  QUrlQuery query;
-  query.addQueryItem("t", "event");
-  query.addQueryItem("ec", category);
-  query.addQueryItem("ea", action);
-  if (!label.isEmpty())
-    query.addQueryItem("el", label);
-  if (value >= 0)
-    query.addQueryItem("ev", QString::number(value));
-
-  static_cast<Application *>(instance())->track(query);
-}
-
 bool Application::event(QEvent *event)
 {
   if (event->type() == QEvent::FileOpen)
     MainWindow::open(static_cast<QFileOpenEvent *>(event)->file());
 
   return QApplication::event(event);
-}
-
-void Application::track(const QUrlQuery &query)
-{
-  if (!mTrackingMgr)
-    return;
-
-  QString sys = userAgentSystem();
-  QString language = QLocale().uiLanguages().first();
-  QString userAgent = kUserAgentFmt.arg(GITAHEAD_NAME, GITAHEAD_VERSION, sys);
-
-  QUrlQuery tmp = query;
-  tmp.addQueryItem("v", "1");
-  tmp.addQueryItem("ds", "app");
-  tmp.addQueryItem("ul", language);
-  tmp.addQueryItem("ua", userAgent);
-  tmp.addQueryItem("an", GITAHEAD_NAME);
-  tmp.addQueryItem("av", GITAHEAD_VERSION);
-  tmp.addQueryItem("tid", GITAHEAD_TRACKING_ID);
-  tmp.addQueryItem("cid", mClientId);
-
-  QString header = "application/x-www-form-urlencoded";
-  QNetworkRequest request(QUrl("http://google-analytics.com/collect"));
-  request.setHeader(QNetworkRequest::ContentTypeHeader, header);
-
-  mTrackingMgr->post(request, tmp.query().toUtf8());
 }
 
 void Application::handleSslErrors(

@@ -15,7 +15,6 @@
 #include "editor/TextEditor.h"
 #include "git/Blame.h"
 #include "git/Blob.h"
-#include "git/Buffer.h"
 #include "git/Commit.h"
 #include "git/Index.h"
 #include "git/Repository.h"
@@ -25,7 +24,6 @@
 #include <QSaveFile>
 #include <QShortcut>
 #include <QSplitter>
-#include <QTextStream>
 #include <QVBoxLayout>
 #include <QtConcurrent>
 
@@ -152,8 +150,7 @@ bool BlameEditor::load(
       return false;
 
     content = file.readAll();
-    git::Buffer buffer(content.constData(), content.length());
-    if (buffer.isBinary())
+    if (git::Blob::isBinary(content))
       return false;
   }
 
@@ -168,7 +165,7 @@ bool BlameEditor::load(
   if (mRepo.isValid() && !content.isEmpty()) {
     mMargin->startBlame(name);
     mBlame.setFuture(QtConcurrent::run(
-      mRepo, &git::Repository::blame, name, commit, mCallbacks.data()));
+      &git::Repository::blame, mRepo, name, commit, mCallbacks.data()));
   }
 
   return true;
@@ -202,11 +199,8 @@ void BlameEditor::save()
   if (!file.open(QFile::WriteOnly))
     return;
 
-  QTextStream out(&file);
-  if (mRepo.isValid())
-    out.setCodec(mRepo.codec());
-
-  out << mEditor->text();
+  QString text = mEditor->text();
+  file.write(mRepo.isValid() ? mRepo.encode(text) : text.toUtf8());
   file.commit();
 
   mEditor->setSavePoint();

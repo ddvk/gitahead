@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.6.2)
+cmake_minimum_required(VERSION 3.15)
 project(GitAhead)
 
 # Set name and version.
 set(GITAHEAD_NAME "GitAhead")
 set(GITAHEAD_VERSION_MAJOR 2)
-set(GITAHEAD_VERSION_MINOR 6)
-set(GITAHEAD_VERSION_PATCH 3)
+set(GITAHEAD_VERSION_MINOR 7)
+set(GITAHEAD_VERSION_PATCH 1)
 set(GITAHEAD_VERSION
   "${GITAHEAD_VERSION_MAJOR}.${GITAHEAD_VERSION_MINOR}.${GITAHEAD_VERSION_PATCH}"
 )
@@ -28,8 +28,8 @@ endif()
 # Explicitly disable shared libraries.
 set(BUILD_SHARED_LIBS OFF)
 
-# Require C++11.
-set(CMAKE_CXX_STANDARD 11)
+# Require C++17.
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 # Disable exceptions and RTTI.
@@ -48,6 +48,7 @@ endif()
 set(QT_MODULES
   Concurrent
   Core
+  Core5Compat
   Gui
   Network
   PrintSupport
@@ -59,9 +60,9 @@ if(APPLE)
   set(QT_MODULES ${QT_MODULES} DBus)
 endif()
 
-find_package(Qt5 5.9 COMPONENTS ${QT_MODULES} LinguistTools REQUIRED)
+find_package(Qt6 COMPONENTS ${QT_MODULES} LinguistTools REQUIRED)
 
-set(QT_TRANSLATIONS_DIR "${Qt5_DIR}/../../../translations")
+set(QT_TRANSLATIONS_DIR "${Qt6_DIR}/../../../translations")
 
 if(APPLE)
   foreach(QT_MODULE ${QT_MODULES})
@@ -70,8 +71,8 @@ if(APPLE)
     # broken because their link dependencies are to the release
     # libraries (e.g. QtGui_debug depends on QtCore). This causes
     # multiple symbol definition errors at application load time.
-    get_target_property(LOCATION Qt5::${QT_MODULE} LOCATION)
-    set_target_properties(Qt5::${QT_MODULE} PROPERTIES
+    get_target_property(LOCATION Qt6::${QT_MODULE} LOCATION)
+    set_target_properties(Qt6::${QT_MODULE} PROPERTIES
       IMPORTED_LOCATION_DEBUG ${LOCATION}
     )
   endforeach()

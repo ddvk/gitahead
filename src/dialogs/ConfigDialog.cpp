@@ -18,7 +18,6 @@
 #include "RemoteTableModel.h"
 #include "SubmoduleDelegate.h"
 #include "SubmoduleTableModel.h"
-#include "app/Application.h"
 #include "conf/Settings.h"
 #include "git/Config.h"
 #include "git/Reference.h"
@@ -30,6 +29,7 @@
 #include "ui/MainWindow.h"
 #include "ui/RepoView.h"
 #include <QAction>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -121,9 +121,7 @@ public:
       view->startFetchTimer();
     });
 
-    using Signal = void (QSpinBox::*)(int);
-    auto signal = static_cast<Signal>(&QSpinBox::valueChanged);
-    connect(mFetchMinutes, signal, [this](int value) {
+    connect(mFetchMinutes, &QSpinBox::valueChanged, [this](int value) {
       mRepo.appConfig().setValue("autofetch.minutes", value);
     });
 
@@ -298,6 +296,7 @@ public:
       foreach (git::Branch branch, branches) {
         Q_ASSERT(!branch.isHead());
         DeleteBranchDialog dialog(branch, this);
+        dialog.setAttribute(Qt::WA_DeleteOnClose, false);
         dialog.exec();
       }
     });
@@ -390,9 +389,6 @@ public:
   SearchPanel(RepoView *view, QWidget *parent = nullptr)
     : QWidget(parent)
   {
-    using Signal = void (QSpinBox::*)(int);
-    auto signal = static_cast<Signal>(&QSpinBox::valueChanged);
-
     git::Config config = view->repo().appConfig();
     Q_ASSERT(config.isValid());
 
@@ -417,7 +413,7 @@ public:
     terms->setMaximum(99999999);
     terms->setSingleStep(100000);
     terms->setValue(config.value<int>("index.termlimit", 1000000));
-    connect(terms, signal, [view](int value) {
+    connect(terms, &QSpinBox::valueChanged, [view](int value) {
       view->repo().appConfig().setValue("index.termlimit", value);
     });
 
@@ -430,7 +426,7 @@ public:
     QSpinBox *context = new QSpinBox(this);
     QLabel *contextLabel = new QLabel(tr("lines"), this);
     context->setValue(config.value<int>("index.contextlines", 3));
-    connect(context, signal, [view](int value) {
+    connect(context, &QSpinBox::valueChanged, [view](int value) {
       view->repo().appConfig().setValue("index.contextlines", value);
     });
 
@@ -517,7 +513,7 @@ public:
       watcher->deleteLater();
     });
 
-    watcher->setFuture(QtConcurrent::run(repo, &git::Repository::lfsTracked));
+    watcher->setFuture(QtConcurrent::run(&git::Repository::lfsTracked, repo));
 
     Footer *footer = new Footer(list);
     connect(footer, &Footer::plusClicked, [this, repo, model] {
@@ -727,8 +723,6 @@ public:
 ConfigDialog::ConfigDialog(RepoView *view, Index index)
   : QDialog(view)
 {
-  Application::track("ConfigDialog");
-
   setMinimumWidth(500);
   setAttribute(Qt::WA_DeleteOnClose);
   setContextMenuPolicy(Qt::NoContextMenu);

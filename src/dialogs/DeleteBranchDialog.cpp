@@ -30,6 +30,8 @@ DeleteBranchDialog::DeleteBranchDialog(
   QWidget *parent)
   : QMessageBox(parent)
 {
+  setAttribute(Qt::WA_DeleteOnClose);
+
   QString text = tr("Are you sure you want to delete local branch '%1'?");
   setWindowTitle(tr("Delete Branch?"));
   setText(text.arg(branch.name()));
@@ -62,8 +64,8 @@ DeleteBranchDialog::DeleteBranchDialog(
 
       entry->setBusy(true);
       QStringList refspecs(QString(":%1").arg(upstreamName));
-      watcher->setFuture(
-        QtConcurrent::run(remote, &git::Remote::push, callbacks, refspecs));
+      watcher->setFuture(QtConcurrent::run(
+        &git::Remote::push, remote, callbacks, refspecs));
 
       connect(watcher, &QFutureWatcher<git::Result>::finished, watcher,
       [entry, watcher, callbacks, remoteName] {
@@ -92,4 +94,12 @@ DeleteBranchDialog::DeleteBranchDialog(
          "it may cause some commits to be lost."));
     setDefaultButton(QMessageBox::Cancel);
   }
+}
+
+void DeleteBranchDialog::open(const git::Branch &branch, QWidget *parent)
+{
+  Q_ASSERT(parent);
+  RepoView *view = RepoView::parentView(parent);
+  DeleteBranchDialog *dialog = new DeleteBranchDialog(branch, view);
+  dialog->QDialog::open();
 }

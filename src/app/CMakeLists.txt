@@ -19,27 +19,24 @@ file(GLOB SCINTILLUA_LEXERS ${SCINTILLUA_LEXERS_DIR}/*.lua)
 file(GLOB LUA_PLUGINS ${CONF_DIR}/plugins/*.lua ${CONF_DIR}/plugins/*.txt)
 
 # Build resources.
-qt5_add_resources(RESOURCES ${RSRC_DIR}/resources.qrc)
+qt_add_resources(RESOURCES ${RSRC_DIR}/resources.qrc)
 
 # Generate acknowledgments.
 set(DOC_SOURCE_DIR ${CMAKE_SOURCE_DIR}/doc)
 set(DOC_BINARY_DIR ${CMAKE_BINARY_DIR}/doc)
 set(CHANGELOG_MD ${DOC_SOURCE_DIR}/changelog.md)
 set(ACKNOWLEDGMENTS_MD ${DOC_SOURCE_DIR}/acknowledgments.md)
-set(PRIVACY_MD ${DOC_SOURCE_DIR}/privacy.md)
 set(PLUGIN_MD ${DOC_SOURCE_DIR}/plugin.md)
 set(CHANGELOG_HTML ${DOC_BINARY_DIR}/changelog.html)
 set(ACKNOWLEDGMENTS_HTML ${DOC_BINARY_DIR}/acknowledgments.html)
-set(PRIVACY_HTML ${DOC_BINARY_DIR}/privacy.html)
 set(PLUGIN_HTML ${DOC_BINARY_DIR}/plugin.html)
 add_custom_command(OUTPUT
-  ${CHANGELOG_HTML} ${ACKNOWLEDGMENTS_HTML} ${PRIVACY_HTML} ${PLUGIN_HTML}
+  ${CHANGELOG_HTML} ${ACKNOWLEDGMENTS_HTML} ${PLUGIN_HTML}
   COMMAND ${CMAKE_COMMAND} -E make_directory ${DOC_BINARY_DIR}
   COMMAND cmark ${CHANGELOG_MD} > ${CHANGELOG_HTML}
   COMMAND cmark ${ACKNOWLEDGMENTS_MD} > ${ACKNOWLEDGMENTS_HTML}
-  COMMAND cmark ${PRIVACY_MD} > ${PRIVACY_HTML}
   COMMAND cmark ${PLUGIN_MD} > ${PLUGIN_HTML}
-  DEPENDS ${CHANGELOG_MD} ${ACKNOWLEDGMENTS_MD} ${PRIVACY_MD} ${PLUGIN_MD}
+  DEPENDS ${CHANGELOG_MD} ${ACKNOWLEDGMENTS_MD} ${PLUGIN_MD}
 )
 
 # Add application library.
@@ -57,7 +54,6 @@ target_compile_definitions(app
     GITAHEAD_NAME="${GITAHEAD_NAME}"
     GITAHEAD_VERSION="${GITAHEAD_VERSION}"
   PRIVATE
-    GITAHEAD_TRACKING_ID="${GITAHEAD_TRACKING_ID}"
     QT_TRANSLATIONS_DIR="${QT_TRANSLATIONS_DIR}"
 )
 
@@ -66,7 +62,7 @@ target_link_libraries(app
   git
   ui
   update
-  Qt5::Widgets
+  Qt6::Widgets
 )
 
 set_target_properties(app PROPERTIES
@@ -87,7 +83,6 @@ add_executable(gitahead WIN32 MACOSX_BUNDLE
   ${SCINTILLUA_LEXERS}
   ${CHANGELOG_HTML}
   ${ACKNOWLEDGMENTS_HTML}
-  ${PRIVACY_HTML}
   ${PLUGIN_HTML}
 )
 
@@ -102,7 +97,7 @@ if(WIN32)
   target_link_libraries(app Dbghelp.lib)
 elseif(APPLE)
   set_target_properties(gitahead PROPERTIES
-    INSTALL_RPATH "/usr/local/qt;@loader_path/../Frameworks"
+    INSTALL_RPATH "@loader_path/../Frameworks"
     MACOSX_BUNDLE_INFO_PLIST ${RSRC_DIR}/Info.plist.in
     MACOSX_BUNDLE_ICON_FILE ${GITAHEAD_NAME}
     MACOSX_BUNDLE_BUNDLE_NAME ${GITAHEAD_NAME}
@@ -115,7 +110,7 @@ elseif(APPLE)
   # Copy config files into bundle.
   set_source_files_properties(
     ${ICON} ${EMOJI} ${MERGETOOLS} ${CONFIG_FILES}
-    ${CHANGELOG_HTML} ${ACKNOWLEDGMENTS_HTML} ${PRIVACY_HTML} ${PLUGIN_HTML}
+    ${CHANGELOG_HTML} ${ACKNOWLEDGMENTS_HTML} ${PLUGIN_HTML}
     PROPERTIES MACOSX_PACKAGE_LOCATION Resources
   )
 
@@ -149,19 +144,17 @@ install(TARGETS gitahead
 )
 
 if(APPLE)
-  get_target_property(QT_LIBRARY Qt5::Core LOCATION)
+  get_target_property(QT_LIBRARY Qt6::Core LOCATION)
   get_filename_component(QT_FRAMEWORK ${QT_LIBRARY} DIRECTORY)
   get_filename_component(RPATH ${QT_FRAMEWORK} DIRECTORY)
+  get_filename_component(RPATH ${RPATH} DIRECTORY)
+  get_filename_component(RPATH ${RPATH} DIRECTORY)
 
   # Fixup relauncher RPATH.
   set(RELAUNCHER ${GITAHEAD_NAME}.app/Contents/MacOS/relauncher)
   install(CODE
     "execute_process(COMMAND
       ${CMAKE_INSTALL_NAME_TOOL} -delete_rpath \"${RPATH}\"
-        \"\${CMAKE_INSTALL_PREFIX}/${RELAUNCHER}\"
-    )
-    execute_process(COMMAND
-      ${CMAKE_INSTALL_NAME_TOOL} -add_rpath \"/usr/local/qt\"
         \"\${CMAKE_INSTALL_PREFIX}/${RELAUNCHER}\"
     )
     execute_process(COMMAND
@@ -179,10 +172,6 @@ if(APPLE)
         \"\${CMAKE_INSTALL_PREFIX}/${INDEXER}\"
     )
     execute_process(COMMAND
-      ${CMAKE_INSTALL_NAME_TOOL} -add_rpath \"/usr/local/qt\"
-        \"\${CMAKE_INSTALL_PREFIX}/${INDEXER}\"
-    )
-    execute_process(COMMAND
       ${CMAKE_INSTALL_NAME_TOOL} -add_rpath \"@loader_path/../Frameworks\"
         \"\${CMAKE_INSTALL_PREFIX}/${INDEXER}\"
     )"
@@ -190,8 +179,8 @@ if(APPLE)
   )
 else()
   # Install config files.
-  if(CHANGELOG_HTML AND ACKNOWLEDGMENTS_HTML AND PRIVACY_HTML AND PLUGIN_HTML)
-    install(FILES ${CHANGELOG_HTML} ${ACKNOWLEDGMENTS_HTML} ${PRIVACY_HTML} ${PLUGIN_HTML}
+  if(CHANGELOG_HTML AND ACKNOWLEDGMENTS_HTML AND PLUGIN_HTML)
+    install(FILES ${CHANGELOG_HTML} ${ACKNOWLEDGMENTS_HTML} ${PLUGIN_HTML}
       DESTINATION Resources
       COMPONENT ${GITAHEAD_NAME}
     )

@@ -189,7 +189,7 @@ QByteArray Patch::header(int index) const
 
   const git_diff_hunk *hunk = nullptr;
   int result = git_patch_get_hunk(&hunk, nullptr, d.data(), index);
-  return !result ? hunk->header : QByteArray();
+  return !result ? QByteArray(hunk->header) : QByteArray();
 }
 
 int Patch::lineCount(int index) const
@@ -345,10 +345,9 @@ QByteArray Patch::apply(
     return result;
 
   // Apply filters.
-  git_buf out = GIT_BUF_INIT_CONST(nullptr, 0);
-  git_buf raw = GIT_BUF_INIT_CONST(result.constData(), result.length());
-  git_filter_list_apply_to_data(&out, filters, &raw);
-  git_buf_dispose(&raw);
+  git_buf out = GIT_BUF_INIT;
+  git_filter_list_apply_to_buffer(
+    &out, filters, result.constData(), result.length());
 
   QByteArray filtered(out.ptr, out.size);
   git_buf_dispose(&out);

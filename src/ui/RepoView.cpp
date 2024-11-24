@@ -21,7 +21,6 @@
 #include "RemoteCallbacks.h"
 #include "SearchField.h"
 #include "ToolBar.h"
-#include "app/Application.h"
 #include "conf/Settings.h"
 #include "dialogs/CheckoutDialog.h"
 #include "dialogs/CommitDialog.h"
@@ -154,8 +153,6 @@ private:
 RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   : QSplitter(Qt::Vertical, parent), mRepo(repo)
 {
-  Application::track("RepoView");
-
   setHandleWidth(0);
   setAttribute(Qt::WA_DeleteOnClose);
 
@@ -180,9 +177,7 @@ RepoView::RepoView(const git::Repository &repo, MainWindow *parent)
   connect(&mIndexer, &QProcess::started, [searchField] {
     searchField->setPlaceholderText(tr("Indexing..."));
   });
-  using Signal = void (QProcess::*)(int,QProcess::ExitStatus);
-  auto signal = static_cast<Signal>(&QProcess::finished);
-  connect(&mIndexer, signal,
+  connect(&mIndexer, &QProcess::finished,
   [this, searchField](int code, QProcess::ExitStatus status) {
     searchField->setPlaceholderText(tr("Search"));
     if (status == QProcess::CrashExit) {
@@ -472,7 +467,6 @@ void RepoView::clean(const QStringList &untracked)
                  tr("Remove %1 %2?").arg(
                    QString::number(untracked.count()), phrase));
   mb.setInformativeText(tr("This action cannot be undone."));
-  mb.setDetailedText(untracked.join('\n'));
 
   QPushButton *remove = mb.addButton(tr("Remove"), QMessageBox::AcceptRole);
   mb.addButton(QMessageBox::Cancel);
@@ -903,7 +897,7 @@ void RepoView::setLogVisible(bool visible)
 
   QTimeLine *timeline = new QTimeLine(250, this);
   timeline->setDirection(visible ? QTimeLine::Forward : QTimeLine::Backward);
-  timeline->setCurveShape(QTimeLine::LinearCurve);
+  timeline->setEasingCurve(QEasingCurve::Linear);
   timeline->setUpdateInterval(20);
 
   connect(timeline, &QTimeLine::valueChanged, [this, pos](qreal value) {
@@ -937,7 +931,7 @@ LogEntry *RepoView::error(
     tr("Unable to %1 - %2").arg(action, detail) :
     tr("Unable to %1 '%2' - %3").arg(action, name, detail);
 
-  QStringList items = text.split("\\n", QString::KeepEmptyParts);
+  QStringList items = text.split("\\n", Qt::KeepEmptyParts);
   if (items.last() == "\n")
     items.removeLast();
 
@@ -1829,7 +1823,7 @@ void RepoView::push(
 
   entry->setBusy(true);
   mWatcher->setFuture(QtConcurrent::run(
-    remote, &git::Remote::push, mCallbacks, ref, dst, force, tags));
+    &git::Remote::pushRef, remote, mCallbacks, ref, dst, force, tags));
 }
 
 bool RepoView::commit(
@@ -2103,13 +2097,6 @@ git::Branch RepoView::createBranch(
   return branch;
 }
 
-void RepoView::promptToDeleteBranch(const git::Reference &ref)
-{
-  DeleteBranchDialog *dialog = new DeleteBranchDialog(ref, this);
-  dialog->setAttribute(Qt::WA_DeleteOnClose);
-  dialog->open();
-}
-
 void RepoView::promptToStash()
 {
   // Prompt to edit stash commit message.
@@ -2211,13 +2198,6 @@ void RepoView::promptToAddTag(const git::Commit &commit)
       push(remote, tag);
   });
 
-  dialog->open();
-}
-
-void RepoView::promptToDeleteTag(const git::Reference &ref)
-{
-  DeleteTagDialog *dialog = new DeleteTagDialog(ref, this);
-  dialog->setAttribute(Qt::WA_DeleteOnClose);
   dialog->open();
 }
 
@@ -2410,7 +2390,7 @@ void RepoView::updateSubmodulesAsync(
 
   entry->setBusy(true);
   mWatcher->setFuture(QtConcurrent::run(
-    submodule, &git::Submodule::update, mCallbacks, init));
+    &git::Submodule::update, submodule, mCallbacks, init));
 }
 
 bool RepoView::openSubmodule(const git::Submodule &submodule)
@@ -2448,7 +2428,7 @@ void RepoView::ignore(const QString &name)
   if (!file.open(QFile::Append | QFile::Text))
     return;
 
-  QTextStream(&file) << name << endl;
+  QTextStream(&file) << name << Qt::endl;
   file.close();
 
   refresh();

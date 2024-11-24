@@ -16,7 +16,6 @@
 #include "MainWindow.h"
 #include "RepoView.h"
 #include "TabWidget.h"
-#include "app/Application.h"
 #include "conf/RecentRepositories.h"
 #include "conf/RecentRepository.h"
 #include "conf/Settings.h"
@@ -158,7 +157,7 @@ MenuBar::MenuBar(QWidget *parent)
 
   file->addSeparator();
 
-#ifndef Q_OS_MAC
+#ifndef Q_OS_MACOS
   QAction *quit = file->addAction(tr("Exit"));
   quit->setMenuRole(QAction::QuitRole);
   quit->setShortcut(QKeySequence::Quit);
@@ -657,9 +656,7 @@ MenuBar::MenuBar(QWidget *parent)
   QString name = QCoreApplication::applicationName();
   QAction *about = help->addAction(tr("About %1").arg(name));
   about->setMenuRole(QAction::AboutRole);
-  connect(about, &QAction::triggered, [] {
-    AboutDialog::openSharedInstance();
-  });
+  connect(about, &QAction::triggered, &AboutDialog::openSharedInstance);
 
   QAction *update = help->addAction(tr("Check For Updates..."));
   update->setMenuRole(QAction::ApplicationSpecificRole);
@@ -990,7 +987,7 @@ void MenuBar::setDebugMenuVisible(bool visible)
 
 MenuBar *MenuBar::instance(QWidget *widget)
 {
-#ifdef Q_OS_MAC
+#ifdef Q_OS_MACOS
   static MenuBar *instance = nullptr;
   if (!instance)
     instance = new MenuBar;

@@ -27,7 +27,7 @@ const QString kButtonStyle =
   "  text-align: left;"
   "  padding: 3px 3px 3px 3px;"
   "  background: palette(base);"
-#ifndef Q_OS_MAC
+#ifndef Q_OS_MACOS
   "  border: 1px solid palette(mid);"
 #endif
   "  border-top: 1px solid palette(dark)"
@@ -117,7 +117,7 @@ public:
 
     int height = mButton->sizeHint().height();
     int y = sizeHintForRow(0) * qMin(maxVisibleItems, model()->rowCount()) + 4;
-    mButton->setGeometry(0, y, width(), height);
+    mButton->setGeometry(0, y, sizeHint().width(), height);
     setMinimumHeight(y + height);
   }
 

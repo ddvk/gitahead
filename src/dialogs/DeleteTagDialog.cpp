@@ -24,6 +24,8 @@ DeleteTagDialog::DeleteTagDialog(
   QWidget *parent)
   : QMessageBox(parent)
 {
+  setAttribute(Qt::WA_DeleteOnClose);
+
   QString text = tr("Are you sure you want to delete tag '%1'?");
   setWindowTitle(tr("Delete Tag?"));
   setText(text.arg(tag.name()));
@@ -55,8 +57,8 @@ DeleteTagDialog::DeleteTagDialog(
 
       entry->setBusy(true);
       QStringList refspecs(QString(":refs/tags/%1").arg(name));
-      watcher->setFuture(
-        QtConcurrent::run(remote, &git::Remote::push, callbacks, refspecs));
+      watcher->setFuture(QtConcurrent::run(
+        &git::Remote::push, remote, callbacks, refspecs));
 
       connect(watcher, &QFutureWatcher<git::Result>::finished, watcher,
       [entry, watcher, callbacks, remoteName] {
@@ -82,4 +84,12 @@ DeleteTagDialog::DeleteTagDialog(
   });
 
   remove->setFocus();
+}
+
+void DeleteTagDialog::open(const git::TagRef &tag, QWidget *parent)
+{
+  Q_ASSERT(parent);
+  RepoView *view = RepoView::parentView(parent);
+  DeleteTagDialog *dialog = new DeleteTagDialog(tag, view);
+  dialog->QDialog::open();
 }
