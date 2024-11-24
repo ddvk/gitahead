@@ -2117,7 +2117,6 @@ void DiffView::setDiff(const git::Diff &diff)
   QVBoxLayout *layout = new QVBoxLayout(widget);
   layout->setSpacing(4);
   layout->setContentsMargins(0,0,0,0);
-  layout->setMargin(0);
 //  layout->setSizeConstraint(QLayout::SetMinAndMaxSize);
 
   if (!diff.isValid()) {
