@@ -807,7 +807,7 @@ public:
     layout->addWidget(mHeader);
 
     mEditor = new Editor(this);
-    mEditor->setLexer(patch.name());
+    // mEditor->setLexer(patch.name());
     mEditor->setCaretStyle(CARETSTYLE_INVISIBLE);
     mEditor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     if (index >= 0)
@@ -2296,6 +2296,8 @@ void DiffView::fetchMore()
 {
   QVBoxLayout *layout = static_cast<QVBoxLayout *>(widget()->layout());
 
+  widget()->setUpdatesEnabled(false);
+  // widget()->setHidden(true);
   // Add widgets.
   int init = mFiles.size();
   int patchCount = mDiff.count();
@@ -2327,6 +2329,7 @@ void DiffView::fetchMore()
 
     layout->addStretch();
   }
+  widget()->setUpdatesEnabled(true);
 }
 
 void DiffView::fetchAll(int index)

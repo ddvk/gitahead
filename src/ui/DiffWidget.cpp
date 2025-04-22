@@ -39,6 +39,8 @@ DiffWidget::DiffWidget(const git::Repository &repo, QWidget *parent)
   QWidget *fileView = new QWidget();
   mFiles = new FileList(repo, fileView);
   mFiles->hide(); // Start hidden.
+  mFiles->setUniformItemSizes(true);
+  mFiles->setWordWrap(false);
 
   mDiffView = new DiffView(repo, this);
 
@@ -141,6 +143,7 @@ void DiffWidget::setDiff(
   }
 
   mDiffView->setDiff(diff);
+
   mFiles->setDiff(diff, pathspec);
 
   // Reset find.
